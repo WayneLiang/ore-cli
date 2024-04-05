@@ -30,8 +30,11 @@ impl Miner {
     ) -> ClientResult<Signature> {
         let mut stdout = stdout();
         let signer = self.signer();
-        let client =
-            RpcClient::new_with_commitment(self.cluster.clone(), CommitmentConfig::confirmed());
+        // let client =
+        //     RpcClient::new_with_commitment(self.cluster.clone(), CommitmentConfig::confirmed());
+
+        let client = &self.client;
+        let exec_client =&self.exec_client;
 
         // Return error if balance is zero
         let balance = client
@@ -65,7 +68,7 @@ impl Miner {
         let mut attempts = 0;
         loop {
             println!("Attempt: {:?}", attempts);
-            match client.send_transaction_with_config(&tx, send_cfg).await {
+            match exec_client.send_transaction_with_config(&tx, send_cfg).await {
                 Ok(sig) => {
                     sigs.push(sig);
                     println!("{:?}", sig);
@@ -76,7 +79,7 @@ impl Miner {
                     }
                     for _ in 0..CONFIRM_RETRIES {
                         std::thread::sleep(Duration::from_millis(2000));
-                        match client.get_signature_statuses(&sigs).await {
+                        match exec_client.get_signature_statuses(&sigs).await {
                             Ok(signature_statuses) => {
                                 println!("Confirms: {:?}", signature_statuses.value);
                                 for signature_status in signature_statuses.value {
